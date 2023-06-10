@@ -62,5 +62,6 @@ class AutoReply(commands.Cog):
 
         for users_word, bots_reply in settings.items():
             if users_word in content:
+                bots_reply = bots_reply.replace("{user}", message.author.mention)
                 await message.channel.send(bots_reply)
                 break
