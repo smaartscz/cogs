@@ -18,12 +18,12 @@ class AutoReply(commands.Cog):
         pass
 
     @autoreply.command(name="add")
-    async def autoreply_add(self, ctx, users_word: str, bots_reply: str):
+    async def autoreply_add(self, ctx, users_word: str, bots_reply: str, exact_match: bool = True):
         """Add a word and bot reply to autoreply settings"""
         settings = await self.config.guild(ctx.guild).autoreply_settings()
-        settings[users_word.lower()] = bots_reply
+        settings[users_word.lower()] = {"reply": bots_reply, "exact_match": exact_match}
         await self.config.guild(ctx.guild).autoreply_settings.set(settings)
-        await ctx.send(f"Added autoreply: {users_word} - {bots_reply}")
+        await ctx.send(f"Added autoreply: {users_word} - {bots_reply} (Exact Match: {exact_match})")
 
     @autoreply.command(name="remove")
     async def autoreply_remove(self, ctx, users_word: str):
@@ -41,7 +41,7 @@ class AutoReply(commands.Cog):
         """List all autoreply settings"""
         settings = await self.config.guild(ctx.guild).autoreply_settings()
         if settings:
-            reply_list = "\n".join(f"{user_word} - {bot_reply}" for user_word, bot_reply in settings.items())
+            reply_list = "\n".join(f"{user_word} - {bot_reply['reply']} (Exact Match: {bot_reply['exact_match']})" for user_word, bot_reply in settings.items())
             await ctx.send(f"Autoreply List:\n{reply_list}")
         else:
             await ctx.send("No autoreply settings found.")
@@ -60,8 +60,12 @@ class AutoReply(commands.Cog):
         content = message.content.lower()
         settings = await self.config.guild(message.guild).autoreply_settings()
 
-        for users_word, bots_reply in settings.items():
-            if users_word in content:
-                bots_reply = bots_reply.replace("{user}", message.author.mention)
-                await message.channel.send(bots_reply)
-                break
+        for users_word, bot_reply in settings.items():
+            if bot_reply['exact_match'] and users_word == content:
+                reply = bot_reply['reply'].replace("{user}", message.author.mention)
+                await message.channel.send(reply)
+                return
+            elif not bot_reply['exact_match'] and users_word in content:
+                reply = bot_reply['reply'].replace("{user}", message.author.mention)
+                await message.channel.send(reply)
+                return
