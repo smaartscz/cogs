@@ -18,12 +18,12 @@ class AutoReply(commands.Cog):
         pass
 
     @autoreply.command(name="add")
-    async def autoreply_add(self, ctx, users_word: str, bots_reply: str, exact_match: bool = True):
+    async def autoreply_add(self, ctx, users_word: str, bots_reply: str, exact_match: bool = True, delete_after: int = 0):
         """Add a word and bot reply to autoreply settings"""
         settings = await self.config.guild(ctx.guild).autoreply_settings()
-        settings[users_word.lower()] = {"reply": bots_reply, "exact_match": exact_match}
+        settings[users_word.lower()] = {"reply": bots_reply, "exact_match": exact_match, "delete_after": delete_after}
         await self.config.guild(ctx.guild).autoreply_settings.set(settings)
-        await ctx.send(f"Added autoreply: {users_word} - {bots_reply} (Exact Match: {exact_match})")
+        await ctx.send(f"Added autoreply: {users_word} - {bots_reply} (Exact Match: {exact_match}, Delete After: {delete_after}s)")
 
     @autoreply.command(name="remove")
     async def autoreply_remove(self, ctx, users_word: str):
@@ -41,7 +41,7 @@ class AutoReply(commands.Cog):
         """List all autoreply settings"""
         settings = await self.config.guild(ctx.guild).autoreply_settings()
         if settings:
-            reply_list = "\n".join(f"{user_word} - {bot_reply['reply']} (Exact Match: {bot_reply['exact_match']})" for user_word, bot_reply in settings.items())
+            reply_list = "\n".join(f"{user_word} - {bot_reply['reply']} (Exact Match: {bot_reply['exact_match']}, Delete After: {bot_reply['delete_after']}s)" for user_word, bot_reply in settings.items())
             await ctx.send(f"Autoreply List:\n{reply_list}")
         else:
             await ctx.send("No autoreply settings found.")
@@ -63,9 +63,17 @@ class AutoReply(commands.Cog):
         for users_word, bot_reply in settings.items():
             if bot_reply['exact_match'] and users_word == content:
                 reply = bot_reply['reply'].replace("{user}", message.author.mention)
-                await message.channel.send(reply)
+                sent_message = await message.channel.send(reply)
+                if 'delete_after' in bot_reply and bot_reply['delete_after'] > 0:
+                    await sent_message.delete(delay=bot_reply['delete_after'])
                 return
             elif not bot_reply['exact_match'] and users_word in content:
                 reply = bot_reply['reply'].replace("{user}", message.author.mention)
-                await message.channel.send(reply)
+                sent_message = await message.channel.send(reply)
+                if 'delete_after' in bot_reply and bot_reply['delete_after'] > 0:
+                    await sent_message.delete(delay=bot_reply['delete_after'])
                 return
+
+        # If no autoreply is triggered, delete the message after 0 seconds (default: no deletion)
+        sent_message = await message.channel.send(message.content)
+        await sent_message.delete(delay=0)
