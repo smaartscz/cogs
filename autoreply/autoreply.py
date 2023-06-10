@@ -52,11 +52,6 @@ class AutoReply(commands.Cog):
         await self.config.guild(ctx.guild).autoreply_settings.clear()
         await ctx.send("Cleared all autoreply settings.")
 
-    @commands.command()
-    async def people(self, ctx):
-        """This does stuff!"""
-        await ctx.send("https://open.spotify.com/track/0Y2i84QWPFiFHQfEQDgHya?si=7798a1b9d7eb400f")
-
     @commands.Cog.listener()
     async def on_message(self, message):
         if message.author == self.bot.user:
