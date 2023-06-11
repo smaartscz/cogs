@@ -24,7 +24,13 @@ class AutoReply(commands.Cog):
         settings = await self.config.guild(ctx.guild).autoreply_settings()
         settings[users_word.lower()] = {"reply": bots_reply, "exact_match": exact_match}
         await self.config.guild(ctx.guild).autoreply_settings.set(settings)
-        await ctx.send(f"Added autoreply: {users_word} - {bots_reply} (Exact Match: {exact_match})")
+    
+        embed = Embed(title="Autoreply Added", color=discord.Color.green())
+        embed.add_field(name="Word", value=users_word, inline=False)
+        embed.add_field(name="Bot Reply", value=bots_reply, inline=False)
+        embed.add_field(name="Exact Match", value=str(exact_match), inline=False)
+    
+        await ctx.send(embed=embed)
 
     @autoreply.command(name="remove")
     async def autoreply_remove(self, ctx, users_word: str):
@@ -43,36 +49,36 @@ class AutoReply(commands.Cog):
         settings = await self.config.guild(ctx.guild).autoreply_settings()
         if settings:
             reply_list = []
-    
+
             for user_word, bot_reply in settings.items():
                 reply_text = f"{user_word} - {bot_reply['reply']} (Exact Match: {bot_reply['exact_match']})"
                 reply_list.append(reply_text)
-    
+
             # Check if the total reply_list length exceeds 4000 characters
             if sum(len(reply) for reply in reply_list) > 4000:
                 embeds = []
                 current_embed = Embed(title="Autoreply List", color=discord.Color.blue())
                 character_count = 0
-    
+
                 for reply in reply_list:
                     if character_count + len(reply) > 4000:
                         embeds.append(current_embed)
                         current_embed = Embed(title="Autoreply List (Continued)", color=discord.Color.blue())
                         character_count = 0
-    
+
                     current_embed.add_field(name="Autoreply", value=reply, inline=False)
                     character_count += len(reply)
-    
+
                 embeds.append(current_embed)
-    
+
                 for embed in embeds:
                     await ctx.send(embed=embed)
             else:
                 embed = Embed(title="Autoreply List", color=discord.Color.blue())
-    
+
                 for reply in reply_list:
                     embed.add_field(name="Autoreply", value=reply, inline=False)
-    
+
                 await ctx.send(embed=embed)
         else:
             await ctx.send("No autoreply settings found.")
