@@ -1,4 +1,5 @@
 import discord
+from discord import Embed
 from redbot.core import commands, Config
 
 class AutoReply(commands.Cog):
@@ -41,8 +42,38 @@ class AutoReply(commands.Cog):
         """List all autoreply settings"""
         settings = await self.config.guild(ctx.guild).autoreply_settings()
         if settings:
-            reply_list = "\n".join(f"{user_word} - {bot_reply['reply']} (Exact Match: {bot_reply['exact_match']})" for user_word, bot_reply in settings.items())
-            await ctx.send(f"Autoreply List:\n{reply_list}")
+            reply_list = []
+    
+            for user_word, bot_reply in settings.items():
+                reply_text = f"{user_word} - {bot_reply['reply']} (Exact Match: {bot_reply['exact_match']})"
+                reply_list.append(reply_text)
+    
+            # Check if the total reply_list length exceeds 4000 characters
+            if sum(len(reply) for reply in reply_list) > 4000:
+                embeds = []
+                current_embed = Embed(title="Autoreply List", color=discord.Color.blue())
+                character_count = 0
+    
+                for reply in reply_list:
+                    if character_count + len(reply) > 4000:
+                        embeds.append(current_embed)
+                        current_embed = Embed(title="Autoreply List (Continued)", color=discord.Color.blue())
+                        character_count = 0
+    
+                    current_embed.add_field(name="Autoreply", value=reply, inline=False)
+                    character_count += len(reply)
+    
+                embeds.append(current_embed)
+    
+                for embed in embeds:
+                    await ctx.send(embed=embed)
+            else:
+                embed = Embed(title="Autoreply List", color=discord.Color.blue())
+    
+                for reply in reply_list:
+                    embed.add_field(name="Autoreply", value=reply, inline=False)
+    
+                await ctx.send(embed=embed)
         else:
             await ctx.send("No autoreply settings found.")
 
