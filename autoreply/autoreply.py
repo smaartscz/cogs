@@ -84,7 +84,7 @@ class AutoReply(commands.Cog):
             reply_list = []
 
             for user_word, bot_reply in settings.items():
-                reply_text = f"{user_word} - {bot_reply['reply']} (Exact Match: {bot_reply['exact_match']})"
+                reply_text = f"{user_word} - {bot_reply['reply']} (Exact Match: {bot_reply['exact_match']}, Delete after: {bot_reply['delete_after']})"
                 reply_list.append(reply_text)
 
             # Check if the total reply_list length exceeds 4000 characters
@@ -142,10 +142,10 @@ class AutoReply(commands.Cog):
     async def on_message(self, message):
         if message.author == self.bot.user: 
             return
-    
+
         content = message.content.lower()
         settings = await self.config.guild(message.guild).autoreply_settings()
-    
+
         for users_word, bot_reply in settings.items():
             if bot_reply['exact_match'] and users_word == content:  
                 reply = bot_reply['reply'].replace("{user}", message.author.mention)
