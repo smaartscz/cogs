@@ -42,20 +42,19 @@ class AutoReply(commands.Cog):
             return
 
         settings = await self.config.guild(ctx.guild).autoreply_settings()
-        settings[users_word.lower()] = {"reply": bots_reply, "exact_match": exact_match}
+        settings[users_word.lower()] = {
+            "reply": bots_reply,
+            "exact_match": exact_match,
+            "delete_after": delete_after
+        }
         await self.config.guild(ctx.guild).autoreply_settings.set(settings)
 
         embed = Embed(title="Autoreply Added", color=discord.Color.green())
         embed.add_field(name="Word", value=users_word, inline=False)
         embed.add_field(name="Bot Reply", value=bots_reply, inline=False)
         embed.add_field(name="Exact Match", value=str(exact_match), inline=False)
-
+        embed.add_field(name="Delete After", value=f"{delete_after} seconds", inline=False)
         message = await ctx.send(embed=embed)
-
-        if delete_after > 0:
-            await asyncio.sleep(delete_after)
-            await message.delete()
-
 
     @autoreply.command(name="remove")
     async def autoreply_remove(self, ctx, users_word: str):
@@ -141,18 +140,24 @@ class AutoReply(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        if message.author == self.bot.user:
+        if message.author == self.bot.user: 
             return
-
+    
         content = message.content.lower()
         settings = await self.config.guild(message.guild).autoreply_settings()
-
+    
         for users_word, bot_reply in settings.items():
-            if bot_reply['exact_match'] and users_word == content:
+            if bot_reply['exact_match'] and users_word == content:  
                 reply = bot_reply['reply'].replace("{user}", message.author.mention)
-                await message.channel.send(reply)
+                reply_message = await message.channel.send(reply)
+                if bot_reply.get('delete_after', 0) > 0:
+                    await asyncio.sleep(bot_reply['delete_after'])
+                    await reply_message.delete()
                 return
             elif not bot_reply['exact_match'] and users_word in content:
                 reply = bot_reply['reply'].replace("{user}", message.author.mention)
-                await message.channel.send(reply)
+                reply_message = await message.channel.send(reply)
+                if bot_reply.get('delete_after', 0) > 0:
+                    await asyncio.sleep(bot_reply['delete_after'])
+                    await reply_message.delete()
                 return
