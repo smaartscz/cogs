@@ -8,9 +8,9 @@ class URLTrigger(commands.Cog):
         self.config = Config.get_conf(self, identifier=2468476484)  # Change identifier if needed
         self.config.register_guild(urls={}, mod_roles=[])
 
-    async def get_mod_roles(self, guild):
-        mod_role_ids = await self.config.guild(guild).mod_roles()
-        return [guild.get_role(role_id) for role_id in mod_role_ids]
+    async def get_mod_role(self, guild):
+        mod_role_id = await self.config.guild(guild).mod_role()
+        return guild.get_role(mod_role_id) if mod_role_id else None
 
     def is_mod(self, author, mod_roles):
         return any(role in author.roles for role in mod_roles)
@@ -24,13 +24,6 @@ class URLTrigger(commands.Cog):
                         full_url = url.replace("{userid}", str(message.author.id))
                         async with httpx.AsyncClient() as client:
                             response = await client.get(full_url)
-                            if response.status_code == 200:
-                                embed = discord.Embed(title="Success!", color=discord.Color.green())
-                                await message.channel.send(embed=embed)
-                            else:
-                                error_message = f"Error Sending GET Request\nStatus Code: {response.status_code}\nError: {response.reason}\nURL: {full_url}"
-                                embed = discord.Embed(title="Something went wrong!", description=error_message, color=discord.Color.red())
-                                await message.channel.send(embed=embed)
                     except Exception as e:
                         error_message = f"Error Sending GET Request\nError: {str(e)}\nURL: {full_url}"
                         embed = discord.Embed(title="Something went wrong!", description=error_message, color=discord.Color.red())
@@ -96,25 +89,27 @@ class URLTrigger(commands.Cog):
         pass
 
     @urltrigger_modrole.command(name="set")
-    async def urltrigger_modrole_set(self, ctx, *roles: discord.Role):
-        """Set mod roles for URL Trigger commands"""
-        mod_roles = [role.id for role in roles]
-        await self.config.guild(ctx.guild).mod_roles.set(mod_roles)
-        role_mentions = ", ".join(role.mention for role in roles)
-        embed = discord.Embed(title="Success!", description=f"Mod roles set to: {role_mentions}", color=discord.Color.green())
-        await ctx.send(embed=embed)
+    @commands.has_permissions(administrator=True)
+    async def urltrigger_modrole_set(self, ctx, role: discord.Role):
+        """Set the mod role for URL Trigger commands"""
+        existing_mod_role = await self.get_mod_role(ctx.guild)
+        if existing_mod_role:
+            embed = discord.Embed(title="Something went wrong!", description="Mod role has already been set. Only administrators can modify the mod role.", color=discord.Color.red())
+            await ctx.send(embed=embed)
+        else:
+            await self.config.guild(ctx.guild).mod_role.set(role.id)
+            embed = discord.Embed(title="Success!", description=f"Mod role set to: {role.mention}", color=discord.Color.green())
+            await ctx.send(embed=embed)
 
     @urltrigger_modrole.command(name="remove")
-    async def urltrigger_modrole_remove(self, ctx, *roles: discord.Role):
-        """Remove mod roles from URL Trigger commands"""
-        mod_roles = await self.config.guild(ctx.guild).mod_roles()
-        for role in roles:
-            if role.id in mod_roles:
-                mod_roles.remove(role.id)
-        await self.config.guild(ctx.guild).mod_roles.set(mod_roles)
-        role_mentions = ", ".join(role.mention for role in roles)
-        embed = discord.Embed(title="Success!", description=f"Mod roles removed: {role_mentions}", color=discord.Color.green())
-        await ctx.send(embed=embed)
-
-def setup(bot):
-    bot.add_cog(URLTrigger(bot))
+    @commands.has_permissions(administrator=True)
+    async def urltrigger_modrole_remove(self, ctx):
+        """Remove the mod role from URL Trigger commands"""
+        existing_mod_role = await self.get_mod_role(ctx.guild)
+        if existing_mod_role:
+            await self.config.guild(ctx.guild).mod_role.set(None)
+            embed = discord.Embed(title="Success!", description="Mod role removed.", color=discord.Color.green())
+            await ctx.send(embed=embed)
+        else:
+            embed = discord.Embed(title="Something went wrong!", description="No mod role has been set yet. Use the `modrole set` command to set the mod role.", color=discord.Color.red())
+            await ctx.send(embed=embed)
