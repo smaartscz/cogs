@@ -1,3 +1,5 @@
+import traceback
+import httpx
 from redbot.core import commands, Config
 import discord
 
@@ -14,15 +16,18 @@ class urltrigger(commands.Cog):
                 if message.content == trigger:
                     try:
                         full_url = url.replace("{userid}", str(message.author.id))
-                        response = await self.bot.http.request(discord.http.Route("GET", full_url))
-                        if response.status == 200:
-                            embed = discord.Embed(title="GET Request Sent", color=discord.Color.green())
-                            await message.channel.send(embed=embed)
-                        else:
-                            error_message = f"Error Sending GET Request\nStatus Code: {response.status}\nError: {response.reason}\nURL: {full_url}"
-                            embed = discord.Embed(title="Error Sending GET Request", description=error_message, color=discord.Color.red())
-                            await message.channel.send(embed=embed)
+                        print("URL:", full_url)  # Print the URL for debugging
+                        async with httpx.AsyncClient() as client:
+                            response = await client.get(full_url)
+                            if response.status_code == 200:
+                                embed = discord.Embed(title="GET Request Sent", color=discord.Color.green())
+                                await message.channel.send(embed=embed)
+                            else:
+                                error_message = f"Error Sending GET Request\nStatus Code: {response.status_code}\nError: {response.reason}\nURL: {full_url}"
+                                embed = discord.Embed(title="Error Sending GET Request", description=error_message, color=discord.Color.red())
+                                await message.channel.send(embed=embed)
                     except Exception as e:
+                        traceback.print_exc()
                         error_message = f"Error Sending GET Request\nError: {str(e)}\nURL: {full_url}"
                         embed = discord.Embed(title="Error Sending GET Request", description=error_message, color=discord.Color.red())
                         await message.channel.send(embed=embed)
@@ -54,6 +59,7 @@ class urltrigger(commands.Cog):
                 embed = discord.Embed(title="Something went wrong", color=discord.Color.red())
                 embed.add_field(name="", value="Trigger couldn't be removed! Does it exist?", inline=False)
                 await ctx.send(embed=embed)
+
     @urltrigger.command(name="list")
     async def urltrigger_list(self, ctx):
         """List all URL Triggers"""
