@@ -1,5 +1,5 @@
-from .urltrigger import urltrigger
+from .urltrigger import URLTrigger
 
 async def setup(bot):
-    await bot.add_cog(urltrigger(bot=bot))
+    await bot.add_cog(URLTrigger(bot=bot))
     
