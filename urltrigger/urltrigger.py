@@ -19,13 +19,6 @@ class urltrigger(commands.Cog):
                         print("URL:", full_url)  # Print the URL for debugging
                         async with httpx.AsyncClient() as client:
                             response = await client.get(full_url)
-                            if response.status_code == 200:
-                                embed = discord.Embed(title="GET Request Sent", color=discord.Color.green())
-                                await message.channel.send(embed=embed)
-                            else:
-                                error_message = f"Error Sending GET Request\nStatus Code: {response.status_code}\nError: {response.reason}\nURL: {full_url}"
-                                embed = discord.Embed(title="Error Sending GET Request", description=error_message, color=discord.Color.red())
-                                await message.channel.send(embed=embed)
                     except Exception as e:
                         traceback.print_exc()
                         error_message = f"Error Sending GET Request\nError: {str(e)}\nURL: {full_url}"
