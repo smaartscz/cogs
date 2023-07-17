@@ -27,7 +27,7 @@ class URLTrigger(commands.Cog):
                     except Exception as e:
                         error_message = f"Error Sending GET Request\nError: {str(e)}\nURL: {full_url}"
                         embed = discord.Embed(title="Something went wrong!", description=error_message, color=discord.Color.red())
-                        await message.channel.send(embed=embed)
+                        #await message.channel.send(embed=embed)
 
     @commands.group(aliases=["ut"])
     async def urltrigger(self, ctx):
