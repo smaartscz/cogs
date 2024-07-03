@@ -87,36 +87,15 @@ class AutoReply(commands.Cog):
                 reply_text = f"{user_word} - {bot_reply['reply']} (Exact Match: {bot_reply['exact_match']}, Delete after: {bot_reply['delete_after']})"
                 reply_list.append(reply_text)
 
-            # Check if the total reply_list length exceeds 4000 characters
-            if sum(len(reply) for reply in reply_list) > 4000:
-                embeds = []
-                current_embed = Embed(title="Autoreply List", color=discord.Color.blue())
-                character_count = 0
-
-                for reply in reply_list:
-                    if character_count + len(reply) > 4000:
-                        embeds.append(current_embed)
-                        current_embed = Embed(title="Autoreply List (Continued)", color=discord.Color.blue())
-                        character_count = 0
-
-                    current_embed.add_field(name="Autoreply", value=reply, inline=False)
-                    character_count += len(reply)
-
-                embeds.append(current_embed)
-
-                for embed in embeds:
-                    await ctx.send(embed=embed)
-            else:
+            # Send the list in chunks of 25 to adhere to Discord's field limit
+            for i in range(0, len(reply_list), 25):
                 embed = Embed(title="Autoreply List", color=discord.Color.blue())
-
-                for reply in reply_list:
+                for reply in reply_list[i:i + 25]:
                     embed.add_field(name="Autoreply", value=reply, inline=False)
-
                 await ctx.send(embed=embed)
         else:
             embed = Embed(title="Autoreply List", description="No autoreply settings found.", color=discord.Color.blue())
             await ctx.send(embed=embed)
-
 
     @autoreply.command(name="purge")
     async def autoreply_purge(self, ctx):
