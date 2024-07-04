@@ -18,16 +18,20 @@ class URLTrigger(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message):
         async with self.config.guild(message.guild).urls() as urls:
-            for trigger, url in urls.items():
+            for trigger, (url, method, key, value) in urls.items():
                 if message.content == trigger:
                     try:
                         full_url = url.replace("{userid}", str(message.author.id))
                         async with httpx.AsyncClient() as client:
-                            response = await client.get(full_url)
+                            if method.upper() == "POST":
+                                data = {key: value.replace("{userid}", str(message.author.id))}
+                                response = await client.post(full_url, data=data)
+                            else:
+                                response = await client.get(full_url)
                     except Exception as e:
-                        error_message = f"Error Sending GET Request\nError: {str(e)}\nURL: {full_url}"
+                        error_message = f"Error Sending {method} Request\nError: {str(e)}\nURL: {full_url}"
                         embed = discord.Embed(title="Something went wrong!", description=error_message, color=discord.Color.red())
-                        #await message.channel.send(embed=embed)
+                        await message.channel.send(embed=embed)
 
     @commands.group(aliases=["ut"])
     async def urltrigger(self, ctx):
@@ -35,14 +39,24 @@ class URLTrigger(commands.Cog):
         pass
 
     @urltrigger.command(name="add")
-    async def urltrigger_add(self, ctx, trigger: str, url: str):
+    async def urltrigger_add(self, ctx, trigger: str, url: str, method: str = "GET", key: str = None, value: str = None):
         """Add a URL Trigger"""
         mod_roles = await self.get_mod_roles(ctx.guild)
         if self.is_mod(ctx.author, mod_roles):
+            if method.upper() not in ["GET", "POST"]:
+                embed = discord.Embed(title="Something went wrong!", description="Invalid method. Please use 'GET' or 'POST'.", color=discord.Color.red())
+                await ctx.send(embed=embed)
+                return
+            if method.upper() == "POST" and (key is None or value is None):
+                embed = discord.Embed(title="Something went wrong!", description="For POST requests, key and value must be specified.", color=discord.Color.red())
+                await ctx.send(embed=embed)
+                return
             async with self.config.guild(ctx.guild).urls() as urls:
-                urls[trigger] = url
+                urls[trigger] = (url, method.upper(), key, value)
             embed = discord.Embed(title="Success!", color=discord.Color.green())
-            embed.add_field(name=trigger, value=url, inline=False)
+            embed.add_field(name=trigger, value=f"{url} ({method.upper()})", inline=False)
+            if method.upper() == "POST":
+                embed.add_field(name="POST Data", value=f"{key}: {value}", inline=False)
             await ctx.send(embed=embed)
         else:
             embed = discord.Embed(title="Something went wrong!", description="You don't have permission to use this command.", color=discord.Color.red())
@@ -73,8 +87,10 @@ class URLTrigger(commands.Cog):
             triggers = await self.config.guild(ctx.guild).urls()
             if triggers:
                 embed = discord.Embed(title="URL Triggers", color=discord.Color.blue())
-                for trigger, url in triggers.items():
-                    embed.add_field(name=trigger, value=url, inline=False)
+                for trigger, (url, method, key, value) in triggers.items():
+                    embed.add_field(name=trigger, value=f"{url} ({method})", inline=False)
+                    if method == "POST":
+                        embed.add_field(name="POST Data", value=f"{key}: {value}", inline=False)
                 await ctx.send(embed=embed)
             else:
                 embed = discord.Embed(title="URL Triggers", description="No URL Triggers found.", color=discord.Color.blue())
