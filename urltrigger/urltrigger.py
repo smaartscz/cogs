@@ -18,7 +18,12 @@ class URLTrigger(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message):
         async with self.config.guild(message.guild).urls() as urls:
-            for trigger, (url, method, key, value) in urls.items():
+            for trigger, config in urls.items():
+                if len(config) == 4:  # Ensure that we have the correct number of elements in the tuple
+                    url, method, key, value = config
+                else:  # If not, skip this entry
+                    print(config)
+                    continue
                 if message.content == trigger:
                     try:
                         full_url = url.replace("{userid}", str(message.author.id))
@@ -42,7 +47,7 @@ class URLTrigger(commands.Cog):
     async def urltrigger_add(self, ctx, trigger: str, url: str, method: str = "GET", key: str = None, value: str = None):
         """Add a URL Trigger"""
         mod_roles = await self.get_mod_role(ctx.guild)
-        if self.is_mod(ctx.author, mod_roles):
+        if self.is_mod(ctx.author, [mod_roles]):
             if method.upper() not in ["GET", "POST"]:
                 embed = discord.Embed(title="Something went wrong!", description="Invalid method. Please use 'GET' or 'POST'.", color=discord.Color.red())
                 await ctx.send(embed=embed)
@@ -66,7 +71,7 @@ class URLTrigger(commands.Cog):
     async def urltrigger_remove(self, ctx, trigger: str):
         """Remove a URL Trigger"""
         mod_roles = await self.get_mod_role(ctx.guild)
-        if self.is_mod(ctx.author, mod_roles):
+        if self.is_mod(ctx.author, [mod_roles]):
             async with self.config.guild(ctx.guild).urls() as urls:
                 if trigger in urls:
                     del urls[trigger]
