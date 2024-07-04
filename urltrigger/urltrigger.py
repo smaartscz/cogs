@@ -41,7 +41,7 @@ class URLTrigger(commands.Cog):
     @urltrigger.command(name="add")
     async def urltrigger_add(self, ctx, trigger: str, url: str, method: str = "GET", key: str = None, value: str = None):
         """Add a URL Trigger"""
-        mod_roles = await self.get_mod_roles(ctx.guild)
+        mod_roles = await self.get_mod_role(ctx.guild)
         if self.is_mod(ctx.author, mod_roles):
             if method.upper() not in ["GET", "POST"]:
                 embed = discord.Embed(title="Something went wrong!", description="Invalid method. Please use 'GET' or 'POST'.", color=discord.Color.red())
@@ -65,7 +65,7 @@ class URLTrigger(commands.Cog):
     @urltrigger.command(name="remove")
     async def urltrigger_remove(self, ctx, trigger: str):
         """Remove a URL Trigger"""
-        mod_roles = await self.get_mod_roles(ctx.guild)
+        mod_roles = await self.get_mod_role(ctx.guild)
         if self.is_mod(ctx.author, mod_roles):
             async with self.config.guild(ctx.guild).urls() as urls:
                 if trigger in urls:
